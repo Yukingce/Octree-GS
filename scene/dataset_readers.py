@@ -84,10 +84,10 @@ def readColmapCameras(cam_extrinsics, cam_intrinsics, images_folder, masks_folde
 
         extr = cam_extrinsics[key]
         intr = cam_intrinsics[extr.camera_id]
-        # height = intr.height
-        # width = intr.width
-        height = 756
-        width = 1008
+        height = intr.height
+        width = intr.width
+        # height = 756
+        # width = 1008
 
         uid = intr.id
         R = np.transpose(qvec2rotmat(extr.qvec))
@@ -113,7 +113,21 @@ def readColmapCameras(cam_extrinsics, cam_intrinsics, images_folder, masks_folde
         # image_name = os.path.basename(image_path).split(".")[0]
         # image = Image.open(image_path)
 
-        image_path = os.path.join(images_folder, extr.name) if os.path.exists(os.path.join(images_folder, extr.name)) else os.path.join(images_folder, os.path.splitext(extr.name)[0] + ".png")
+        # image_path = os.path.join(images_folder, extr.name) if os.path.exists(os.path.join(images_folder, extr.name)) else os.path.join(images_folder, os.path.splitext(extr.name)[0] + ".png")
+        base, _ = os.path.splitext(extr.name)
+        candidates = [
+            extr.name,
+            f"{base}.png",
+            f"{base}.jpg",
+            f"{base}.JPG"
+        ]
+        image_path = None
+        for name in candidates:
+            path = os.path.join(images_folder, name)
+            if os.path.exists(path):
+                image_path = path
+                break
+
         image_name = os.path.splitext(os.path.basename(image_path))[0]
         if masks_folder is not None:
             if os.path.exists(os.path.join(masks_folder, os.path.splitext(extr.name)[0] + ".png")):

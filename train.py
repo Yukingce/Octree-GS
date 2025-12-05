@@ -343,7 +343,7 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
     masks_path = os.path.join(model_path, name, "ours_{}".format(iteration), "masks")
     makedirs(render_path, exist_ok=True)
     makedirs(gts_path, exist_ok=True)
-    makedirs(masks_path, exist_ok=True)
+    # makedirs(masks_path, exist_ok=True)
 
     t_list = []
     visible_count_list = []
@@ -361,7 +361,11 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
         t_list.append(t_end - t_start)
 
         # renders
-        mask = (~view.valid_mask).float() if view.valid_mask is not None else torch.zeros(view.image_height, view.image_width)
+        if view.valid_mask is not None:
+            makedirs(masks_path, exist_ok=True)
+            mask = ~view.valid_mask.float()
+            torchvision.utils.save_image(mask.unsqueeze(0), os.path.join(masks_path, '{0:05d}'.format(idx) + ".png"))
+
         rendering = torch.clamp(render_pkg["render"], 0.0, 1.0)
 
         visible_count = (render_pkg["radii"] > 0).sum()
@@ -375,7 +379,6 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
         torchvision.utils.save_image(rendering, os.path.join(render_path, '{0:05d}'.format(idx) + ".png"))
         # torchvision.utils.save_image(errormap, os.path.join(error_path, '{0:05d}'.format(idx) + ".png"))
         torchvision.utils.save_image(gt, os.path.join(gts_path, '{0:05d}'.format(idx) + ".png"))
-        torchvision.utils.save_image(mask.unsqueeze(0), os.path.join(masks_path, '{0:05d}'.format(idx) + ".png"))
         per_view_dict['{0:05d}'.format(idx) + ".png"] = visible_count.item()
         
     with open(os.path.join(model_path, name, "ours_{}".format(iteration), "per_view_count.json"), 'w') as fp:
@@ -456,11 +459,16 @@ def readImages(renders_dir, gt_dir, masks_dir):
     for fname in os.listdir(renders_dir):
         render = Image.open(renders_dir / fname)
         gt = Image.open(gt_dir / fname)
-        mask = torch.from_numpy(~cv2.imread(str(masks_dir / fname))[:, :, 0].astype(bool))
         renders.append(tf.to_tensor(render)[:3, :, :].cuda())
         gts.append(tf.to_tensor(gt)[:3, :, :].cuda())
-        masks.append(mask.cuda())
         image_names.append(fname)
+
+        if os.path.exists(str(masks_dir / fname)):
+            mask = torch.from_numpy(cv2.imread(str(masks_dir / fname))[:, :, 0].astype(bool))
+            masks.append(mask.cuda())
+        else:
+            mask = None
+            masks.append(mask)
     return renders, gts, image_names, masks
 
 
@@ -500,7 +508,10 @@ def evaluate(model_paths, eval_name, visible_count=None, wandb=None, tb_writer=N
         for idx in tqdm(range(len(renders)), desc="Metric evaluation progress"):
             ssims.append(ssim(renders[idx], gts[idx], mask=masks[idx]))
             psnrs.append(psnr(renders[idx], gts[idx], masks[idx]))
-            lpipss.append(lpips_fn(renders[idx] * masks[idx], gts[idx] * masks[idx]).detach())
+            if masks[idx] is not None:
+                lpipss.append(lpips_fn(renders[idx] * masks[idx], gts[idx] * masks[idx]).detach())
+            else:
+                lpipss.append(lpips_fn(renders[idx], gts[idx]).detach())
 
         # if wandb is not None:
         #         wandb.log({"test_SSIMS":torch.stack(ssims).mean().item(), })
@@ -564,8 +575,8 @@ if __name__ == "__main__":
     parser.add_argument('--detect_anomaly', action='store_true', default=False)
     parser.add_argument('--warmup', action='store_true', default=False)
     parser.add_argument('--use_wandb', action='store_true', default=False)
-    parser.add_argument("--test_iterations", nargs="+", type=int, default=[1000, 10_000, 30_000, 50_000, 60_000])
-    parser.add_argument("--save_iterations", nargs="+", type=int, default=[30_000, 60_000])
+    parser.add_argument("--test_iterations", nargs="+", type=int, default=[10000, 20_000, 30_000, 40_000])
+    parser.add_argument("--save_iterations", nargs="+", type=int, default=[40_000])
     parser.add_argument("--quiet", action="store_true")
     parser.add_argument("--checkpoint_iterations", nargs="+", type=int, default=[])
     parser.add_argument("--start_checkpoint", type=str, default = None)

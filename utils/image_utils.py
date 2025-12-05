@@ -21,9 +21,9 @@ def mse(img1, img2):
 def psnr(img1, img2, mask=None):
 
     if mask is not None:
-        if img1.shape[0] == 3:
+        if img1.ndim == 3:
             mse = ((img1 - img2) ** 2)[:, mask].mean()
-        elif img1.shape[0] == 4:
+        elif img1.ndim == 4:
             mse = ((img1 - img2) ** 2)[:, :, mask].mean()
         else:
             mse = ((img1 - img2) ** 2)[mask].mean()

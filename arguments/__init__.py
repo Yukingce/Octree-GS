@@ -47,14 +47,14 @@ class ParamGroup:
 class ModelParams(ParamGroup): 
     def __init__(self, parser, sentinel=False):
         self.feat_dim = 32
-        self.n_offsets = 10
+        self.n_offsets = 5
         self.fork = 2
 
         self.use_feat_bank = False
-        self._source_path = "/media/rxjqr/wy/Data/nerf_llff_data/room"
-        self._model_path = "/media/rxjqr/wy/output/vggt_colmap/room/colmap"
-        self._images = "images_4"
-        self._resolution = -1
+        self._source_path = "/media/rxjqr/fdy/DataSet/LG_K1/YSQ_foor1_all2merge/floor1_Azuo"
+        self._model_path = "/media/rxjqr/wy/output/Octree_GS/floor1_Azuo"
+        self._images = "images"
+        self._resolution = 1
         self.white_background = False
         self.random_background = False
         self.resolution_scales = [1.0]
@@ -84,9 +84,9 @@ class ModelParams(ParamGroup):
         self.extra_ratio = 0.25
         self.extra_up = 0.01
 
-        self.desc = "room_60000"
+        self.desc = "floor1_feat_dim=5"
         self.time = time.localtime()
-        self.deactivate_percent = 0
+        self.deactivate_percent = 0.95
         self.masks_folder = 'masks'
         
         super().__init__(parser, "Loading Parameters", sentinel)
